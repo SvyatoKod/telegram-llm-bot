@@ -10,10 +10,15 @@ function loadConfig() {
   const telegramBotToken = requireEnv('TELEGRAM_BOT_TOKEN');
 
   const ollamaUrl = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
-  const ollamaModel = process.env.OLLAMA_MODEL || 'qwen3:0.6b`';
+  const ollamaModel = process.env.OLLAMA_MODEL || 'qwen3:0.6b';
+  const systemPrompt =
+    (typeof process.env.SYSTEM_PROMPT === 'string' && process.env.SYSTEM_PROMPT.trim()) ||
+    'Ты пионер вожатый, который приветствует и говорит с другими пионерами. Ты хочешь помочь другим и, если не знаешь ответ, то говоришь "Я не знаю товарищ".';
 
   const telegramPollTimeoutSec = clampInt(process.env.TELEGRAM_POLL_TIMEOUT_SEC, 30, 1, 60);
   const maxConcurrency = clampInt(process.env.MAX_CONCURRENCY, 4, 1, 32);
+  const countMessageLimit = clampInt(process.env.COUNT_MESSAGE_LIMIT, 10, 1, 500);
+  const countMessageSummaryLimit = clampInt(process.env.COUNT_MESSAGE_SUMMARY_LIMIT, 6, 2, 500);
 
   return {
     telegram: {
@@ -24,9 +29,12 @@ function loadConfig() {
     ollama: {
       url: ollamaUrl,
       model: ollamaModel,
+      systemPrompt,
     },
     runtime: {
       maxConcurrency,
+      countMessageLimit,
+      countMessageSummaryLimit,
     },
   };
 }
