@@ -56,4 +56,3 @@ class TelegramPoller {
 }
 
 module.exports = { TelegramPoller };
-

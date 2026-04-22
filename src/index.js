@@ -2,12 +2,10 @@
 const { loadDotEnvIfPresent } = require('./config/dotenv');
 const { loadConfig } = require('./config/config');
 const { HttpJsonClient } = require('./infra/httpJsonClient');
-const { TelegramClient } = require('./telegram/telegramClient');
-const { TelegramPoller } = require('./telegram/telegramPoller');
-const { OllamaClient } = require('./llm/ollamaClient');
-const { TextMessageHandler } = require('./handlers/textMessageHandler');
-const { Semaphore } = require('./utils/semaphore');
-const { DialogHistoryService } = require('./services/dialogHistoryService');
+const { createUsers } = require('./users');
+const { createHistory } = require('./history');
+const { createChat } = require('./chat');
+const { createBot } = require('./bot');
 
 loadDotEnvIfPresent();
 
@@ -20,23 +18,25 @@ try {
 }
 
 const httpJson = new HttpJsonClient({ maxSockets: config.runtime.maxConcurrency * 2 });
-const telegram = new TelegramClient({ apiBase: config.telegram.apiBase, httpJsonClient: httpJson });
-const ollama = new OllamaClient({ baseUrl: config.ollama.url, model: config.ollama.model, httpJsonClient: httpJson });
-const dialogHistory = new DialogHistoryService({ maxMessagesPerUser: config.runtime.countMessageLimit });
-const handler = new TextMessageHandler({
-  telegramClient: telegram,
-  llmClient: ollama,
-  dialogHistory,
+
+const users = createUsers();
+const history = createHistory({ maxMessagesPerUser: config.runtime.countMessageLimit });
+const chat = createChat({
+  baseUrl: config.ollama.url,
+  model: config.ollama.model,
+  httpJsonClient: httpJson,
+  systemPrompt: config.ollama.systemPrompt,
+});
+const bot = createBot({
+  apiBase: config.telegram.apiBase,
+  httpJsonClient: httpJson,
+  pollTimeoutSec: config.telegram.pollTimeoutSec,
+  maxConcurrency: config.runtime.maxConcurrency,
   countMessageSummaryLimit: config.runtime.countMessageSummaryLimit,
   systemPrompt: config.ollama.systemPrompt,
-  logger: console,
-});
-const sem = new Semaphore(config.runtime.maxConcurrency);
-const poller = new TelegramPoller({
-  telegramClient: telegram,
-  messageHandler: handler,
-  semaphore: sem,
-  pollTimeoutSec: config.telegram.pollTimeoutSec,
+  users,
+  history,
+  chat,
   logger: console,
 });
 
@@ -67,8 +67,7 @@ console.log(
   ),
 );
 
-poller.runForever().catch((e) => {
+bot.start().catch((e) => {
   console.error('Fatal error:', e && e.message ? e.message : e);
   process.exit(1);
 });
-
