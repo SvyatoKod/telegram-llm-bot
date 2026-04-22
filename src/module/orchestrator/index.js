@@ -1,7 +1,7 @@
 const { TelegramClient } = require('./telegramClient');
 const { TelegramPoller } = require('./telegramPoller');
 const { MessageOrchestrator } = require('./messageOrchestrator');
-const { Semaphore } = require('../utils/semaphore');
+const { Semaphore } = require('../../utils/semaphore');
 
 function createBot({
   apiBase,
@@ -13,6 +13,7 @@ function createBot({
   users,
   history,
   chat,
+  eventBus,
   logger = console,
 }) {
   const telegramClient = new TelegramClient({ apiBase, httpJsonClient });
@@ -21,6 +22,7 @@ function createBot({
     users,
     history,
     chat,
+    eventBus,
     countMessageSummaryLimit,
     systemPrompt,
     logger,

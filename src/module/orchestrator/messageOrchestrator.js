@@ -1,4 +1,5 @@
-const { appendContextLog, messagesTokenCountApprox } = require('../infra/contextLog');
+const { appendContextLog, messagesTokenCountApprox } = require('../../infra/contextLog');
+const { EVENTS } = require('../../infra/events');
 
 class MessageOrchestrator {
   constructor({
@@ -6,6 +7,7 @@ class MessageOrchestrator {
     users,
     history,
     chat,
+    eventBus,
     countMessageSummaryLimit = 6,
     systemPrompt = '',
     logger = console,
@@ -14,6 +16,7 @@ class MessageOrchestrator {
     this.users = users;
     this.history = history;
     this.chat = chat;
+    this.bus = eventBus;
     this.summaryLimit = countMessageSummaryLimit;
     this.systemPrompt = typeof systemPrompt === 'string' ? systemPrompt.trim() : '';
     this.log = logger;
@@ -61,19 +64,6 @@ class MessageOrchestrator {
     }).catch(() => {});
   }
 
-  async _logTrimIfNeeded(userId, res) {
-    if (!res || !res.truncated) return;
-    await appendContextLog({
-      ts: new Date().toISOString(),
-      event: 'history_trim',
-      reason: 'COUNT_MESSAGE_LIMIT',
-      userId,
-      limit: this.history.maxMessagesPerUser,
-      removedCount: res.removedCount,
-      messageCountAfter: this.history.getAll(userId).length,
-    }).catch(() => {});
-  }
-
   async handle(msg) {
     const chatId = msg.chat && msg.chat.id;
     if (!chatId) return;
@@ -96,11 +86,22 @@ class MessageOrchestrator {
 
     let answer;
     try {
-      await this._logTrimIfNeeded(userId, this.history.addMessage(userId, { role: 'user', content: text }));
+      if (this.bus) {
+        this.bus.emit(EVENTS.MESSAGE_RECEIVED, {
+          userId,
+          chatId,
+          messageId: msg.message_id,
+          content: text,
+        });
+      }
+
       await this._compressHistoryIfNeeded(userId);
 
       const historyMessages = this.history.getAll(userId);
       const { answer: reply, messagesSent } = await this.chat.generateAnswer({
+        userId,
+        chatId,
+        replyToMessageId: msg.message_id,
         history: historyMessages,
         systemPrompt: this.systemPrompt,
       });
@@ -115,11 +116,6 @@ class MessageOrchestrator {
         approxTokens: messagesTokenCountApprox(messagesSent),
         messages: messagesSent,
       }).catch((e) => this.log.warn('Failed to write context log:', e && e.message ? e.message : e));
-
-      await this._logTrimIfNeeded(
-        userId,
-        this.history.addMessage(userId, { role: 'assistant', content: answer || '' }),
-      );
     } catch (e) {
       this.log.warn('LLM error:', e && e.message ? e.message : e);
       await this.telegram

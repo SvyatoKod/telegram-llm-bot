@@ -1,13 +1,21 @@
 const { HistoryRepository } = require('./historyRepository');
+const { EVENTS } = require('../../infra/events');
 
-function createHistory({ maxMessagesPerUser = 50 } = {}) {
+function createHistory({ maxMessagesPerUser = 50, eventBus } = {}) {
   const repo = new HistoryRepository({ maxMessagesPerUser });
+
+  if (eventBus) {
+    eventBus.on(EVENTS.MESSAGE_RECEIVED, ({ userId, content } = {}) => {
+      repo.addMessage(userId, { role: 'user', content });
+    });
+    eventBus.on(EVENTS.RESPONSE_GENERATED, ({ userId, answer } = {}) => {
+      repo.addMessage(userId, { role: 'assistant', content: answer || '' });
+    });
+  }
+
   return {
     get maxMessagesPerUser() {
       return repo.maxMessagesPerUser;
-    },
-    addMessage(userId, message) {
-      return repo.addMessage(userId, message);
     },
     getLastN(userId, n) {
       return repo.getLastN(userId, n);

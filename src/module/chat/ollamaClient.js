@@ -1,5 +1,5 @@
 const { URL } = require('node:url');
-const { sleep } = require('../utils/time');
+const { sleep } = require('../../utils/time');
 
 class OllamaClient {
   constructor({ baseUrl, model, httpJsonClient }) {

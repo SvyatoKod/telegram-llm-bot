@@ -4,10 +4,10 @@ class UserRepository {
   }
 
   identifyFromTelegram(tgUser) {
-    if (!tgUser || tgUser.id === undefined || tgUser.id === null) return null;
+    if (!tgUser || tgUser.id === undefined || tgUser.id === null) return { user: null, created: false };
     const userId = String(tgUser.id);
     const existing = this.byId.get(userId);
-    if (existing) return existing;
+    if (existing) return { user: existing, created: false };
 
     const user = {
       userId,
@@ -18,7 +18,7 @@ class UserRepository {
       createdAt: new Date().toISOString(),
     };
     this.byId.set(userId, user);
-    return user;
+    return { user, created: true };
   }
 
   getById(userId) {

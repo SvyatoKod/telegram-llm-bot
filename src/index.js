@@ -2,10 +2,12 @@
 const { loadDotEnvIfPresent } = require('./config/dotenv');
 const { loadConfig } = require('./config/config');
 const { HttpJsonClient } = require('./infra/httpJsonClient');
-const { createUsers } = require('./users');
-const { createHistory } = require('./history');
-const { createChat } = require('./chat');
-const { createBot } = require('./bot');
+const { createEventBus } = require('./infra/eventBus');
+const { EVENTS } = require('./infra/events');
+const { createUsers } = require('./module/users');
+const { createHistory } = require('./module/history');
+const { createChat } = require('./module/chat');
+const { createBot } = require('./module/orchestrator');
 
 loadDotEnvIfPresent();
 
@@ -18,14 +20,23 @@ try {
 }
 
 const httpJson = new HttpJsonClient({ maxSockets: config.runtime.maxConcurrency * 2 });
+const eventBus = createEventBus({ logger: console });
 
-const users = createUsers();
-const history = createHistory({ maxMessagesPerUser: config.runtime.countMessageLimit });
+eventBus.on(EVENTS.USER_CREATED, (u) => {
+  console.log(`UserCreated: ${u.userId} (@${u.username || '-'})`);
+});
+
+const users = createUsers({ eventBus });
+const history = createHistory({
+  maxMessagesPerUser: config.runtime.countMessageLimit,
+  eventBus,
+});
 const chat = createChat({
   baseUrl: config.ollama.url,
   model: config.ollama.model,
   httpJsonClient: httpJson,
   systemPrompt: config.ollama.systemPrompt,
+  eventBus,
 });
 const bot = createBot({
   apiBase: config.telegram.apiBase,
@@ -37,6 +48,7 @@ const bot = createBot({
   users,
   history,
   chat,
+  eventBus,
   logger: console,
 });
 

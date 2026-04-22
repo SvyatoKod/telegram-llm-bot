@@ -1,4 +1,4 @@
-const { sleep } = require('../utils/time');
+const { sleep } = require('../../utils/time');
 
 class TelegramPoller {
   constructor({ telegramClient, messageHandler, semaphore, pollTimeoutSec, logger = console }) {
