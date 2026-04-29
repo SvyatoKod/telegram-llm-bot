@@ -1,0 +1,28 @@
+{
+  "name": "telegram-llm-bot",
+  "version": "1.0.0",
+  "description": "Telegram LLM bot (polling, in-memory history, Ollama)",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "jest --colors --runInBand"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "<rootDir>/tests/**/*.test.js"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/index.js"
+    ],
+    "clearMocks": true,
+    "verbose": true
+  }
+}
