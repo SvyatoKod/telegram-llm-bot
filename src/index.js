@@ -37,6 +37,9 @@ const chat = createChat({
   httpJsonClient: httpJson,
   systemPrompt: config.ollama.systemPrompt,
   eventBus,
+  summaryChunkSize: config.runtime.summaryChunkSize,
+  summaryChunkOverlap: config.runtime.summaryChunkOverlap,
+  logger: console,
 });
 const bot = createBot({
   apiBase: config.telegram.apiBase,

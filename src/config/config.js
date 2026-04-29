@@ -1,4 +1,5 @@
 const { clampInt } = require('../utils/number');
+const { SUMMARY_CHUNK_SIZE, SUMMARY_CHUNK_OVERLAP } = require('./summaryDefaults');
 
 function requireEnv(name) {
   const v = process.env[name];
@@ -19,6 +20,13 @@ function loadConfig() {
   const maxConcurrency = clampInt(process.env.MAX_CONCURRENCY, 4, 1, 32);
   const countMessageLimit = clampInt(process.env.COUNT_MESSAGE_LIMIT, 10, 1, 500);
   const countMessageSummaryLimit = clampInt(process.env.COUNT_MESSAGE_SUMMARY_LIMIT, 6, 2, 500);
+  const summaryChunkSize = clampInt(process.env.SUMMARY_CHUNK_SIZE, SUMMARY_CHUNK_SIZE, 2, 100);
+  const summaryChunkOverlap = clampInt(
+    process.env.SUMMARY_CHUNK_OVERLAP,
+    SUMMARY_CHUNK_OVERLAP,
+    0,
+    summaryChunkSize - 1,
+  );
 
   return {
     telegram: {
@@ -35,6 +43,8 @@ function loadConfig() {
       maxConcurrency,
       countMessageLimit,
       countMessageSummaryLimit,
+      summaryChunkSize,
+      summaryChunkOverlap,
     },
   };
 }
